@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>جرأة وصراحة</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: white;
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #ff4081;
+    }
+    canvas {
+      background-color: #333;
+      border: 4px solid #ff4081;
+      border-radius: 50%;
+      margin: 20px 0;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      background-color: #ff4081;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #e0356b;
+    }
+    #resultBox {
+      background: #333;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      margin: auto;
+      margin-top: 30px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+<h1>🎡 جرأة وصراحة</h1>
+<p>أدخل أسماء اللاعبين (مثال: علي, سارة):</p>
+<input type="text" id="namesInput" placeholder="مثال: علي, سارة" style="width:60%">
+<br>
+<button onclick="drawWheel()">🎨 رسم العجلة</button>
+<button onclick="spin()">🎯 لف العجلة</button>
+<canvas id="wheel" width="200" height="200"></canvas>
+<div id="resultBox">النتيجة ستظهر هنا...</div>
+
+<audio id="spinSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+<audio id="resultSound" src="https://www.soundjay.com/button/beep-10.wav" preload="auto"></audio>
+
+<script>
+  const truths = [
+    "🧠 صراحة رقم 1: هل سبق وخنت أحدًا؟",
+    "🧠 صراحة رقم 2: ما هو أكبر سر تخفيه؟",
+    "🧠 صراحة رقم 3: من الشخص الذي تكرهه بصمت؟",
+    "🧠 صراحة رقم 4: هل بكيت مؤخراً؟ ولماذا؟",
+    "🧠 صراحة رقم 5: هل تخاف من الفشل؟"
+  ];
+
+  const dares = [
+    "🔥 جرأة رقم 1: كل قطعة ليمون بدون تعبير وجه",
+    "🔥 جرأة رقم 2: اتصل بصديق وقل له 'أنا آسف بدون سبب'",
+    "🔥 جرأة رقم 3: غني بصوت مرتفع 10 ثواني",
+    "🔥 جرأة رقم 4: شارك آخر صورة في هاتفك",
+    "🔥 جرأة رقم 5: قل سرك الأكبر أمام الكل"
+  ];
+
+  let names = [];
+  let startAngle = 0;
+  let arc;
+  let spinTimeout = null;
+  let spinAngleStart = 0;
+  let spinTime = 0;
+  let spinTimeTotal = 0;
+  const canvas = document.getElementById("wheel");
+  const ctx = canvas.getContext("2d");
+  const spinSound = document.getElementById("spinSound");
+  const resultSound = document.getElementById("resultSound");
+
+  function drawWheel() {
+    const input = document.getElementById("namesInput").value;
+    if (!input.trim()) {
+      alert("من فضلك أدخل أسماء اللاعبين.");
+      return;
+    }
+    names = input.split(',').map(n => n.trim()).filter(n => n);
+    arc = Math.PI * 2 / names.length;
+    ctx.clearRect(0, 0, 200, 200);
+    for (let i = 0; i < names.length; i++) {
+      const angle = startAngle + i * arc;
+      ctx.fillStyle = i % 2 === 0 ? "#ff4081" : "#555";
+      ctx.beginPath();
+      ctx.moveTo(100, 100);
+      ctx.arc(100, 100, 90, angle, angle + arc, false);
+      ctx.lineTo(100, 100);
+      ctx.fill();
+      ctx.save();
+      ctx.fillStyle = "white";
+      ctx.translate(100 + Math.cos(angle + arc / 2) * 60, 100 + Math.sin(angle + arc / 2) * 60);
+      ctx.rotate(angle + arc / 2 + Math.PI / 2);
+      ctx.fillText(names[i], -ctx.measureText(names[i]).width / 2, 0);
+      ctx.restore();
+    }
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.moveTo(100, 0);
+    ctx.lineTo(90, 15);
+    ctx.lineTo(110, 15);
+    ctx.fill();
+  }
+
+  function spin() {
+    spinSound.play();
+    spinAngleStart = Math.random() * 10 + 10;
+    spinTime = 0;
+    spinTimeTotal = Math.random() * 3000 + 3000;
+    rotateWheel();
+  }
+
+  function rotateWheel() {
+    spinTime += 30;
+    if (spinTime >= spinTimeTotal) {
+      stopRotateWheel();
+      return;
+    }
+    const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+    startAngle += (spinAngle * Math.PI / 180);
+    drawWheel();
+    spinTimeout = setTimeout(rotateWheel, 30);
+  }
+
+  function stopRotateWheel() {
+    clearTimeout(spinTimeout);
+    resultSound.play();
+    const degrees = startAngle * 180 / Math.PI + 90;
+    const arcd = arc * 180 / Math.PI;
+    const index = Math.floor((360 - (degrees % 360)) / arcd);
+    const selected = names[index];
+    const mode = confirm("🧐 هل تختار 'موافق' للجرأة، و'إلغاء' للصراحة؟");
+    const list = mode ? dares : truths;
+    const i = Math.floor(Math.random() * list.length);
+    const question = list[i];
+    document.getElementById("resultBox").innerHTML = `
+      🎯 تم اختيار: <strong>${selected}</strong><br><br>
+      <strong>${question}</strong>
+    `;
+  }
+
+  function easeOut(t, b, c, d) {
+    const ts = (t /= d) * t;
+    const tc = ts * t;
+    return b + c * (tc + -3 * ts + 3 * t);
+  }
+</script>
+</body>
+</html>
